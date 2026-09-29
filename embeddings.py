@@ -10,23 +10,55 @@ client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 MODEL_NAME = "gemini-embedding-001"
 
 
+import time
+
+BATCH_SIZE = 50
+DELAY_BETWEEN_BATCHES = 1.5  # seconds — keeps us safely under 100 requests/minute
+
+
 def embed_chunks(chunks):
     """
-    Take the list of chunks from processor.py (each with a "text" field)
-    and add an "embedding" field to each one, using Gemini's embedding API.
+    Take the list of chunks from processor.py and add an "embedding"
+    field to each one, sending them to the API in batches with a small
+    delay between each batch to stay within the free-tier rate limit.
     """
-    for i, chunk in enumerate(chunks):
-        result = client.models.embed_content(
-            model=MODEL_NAME,
-            contents=chunk["text"]
-        )
-        chunk["embedding"] = result.embeddings[0].values
+    for batch_start in range(0, len(chunks), BATCH_SIZE):
+        batch = chunks[batch_start : batch_start + BATCH_SIZE]
+        texts = [chunk["text"] for chunk in batch]
 
-        # Simple progress indicator so you can see it's working on big repos
-        if (i + 1) % 50 == 0:
-            print(f"Embedded {i + 1}/{len(chunks)} chunks...")
+        result = embed_with_retry(texts)
+
+        for chunk, embedding in zip(batch, result.embeddings):
+            chunk["embedding"] = embedding.values
+
+        print(f"Embedded {min(batch_start + BATCH_SIZE, len(chunks))}/{len(chunks)} chunks...")
+        time.sleep(DELAY_BETWEEN_BATCHES)
 
     return chunks
+
+
+def embed_with_retry(texts, max_retries=5):
+    """
+    Call the embedding API, automatically waiting and retrying if we hit
+    a rate limit or a temporary network/server issue.
+    """
+    for attempt in range(max_retries):
+        try:
+            return client.models.embed_content(
+                model=MODEL_NAME,
+                contents=texts
+            )
+        except Exception as e:
+            is_last_attempt = attempt == max_retries - 1
+            if is_last_attempt:
+                raise
+
+            if "429" in str(e):
+                print("Rate limit hit — waiting 10 seconds before retrying...")
+                time.sleep(10)
+            else:
+                print(f"Temporary error ({e}) — waiting 5 seconds before retrying...")
+                time.sleep(5)
 
 
 def embed_query(query_text):

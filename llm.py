@@ -1,12 +1,17 @@
 import os
 from dotenv import load_dotenv
-from google import genai
+from openai import OpenAI
 
 load_dotenv()
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
-# Using Flash — fast, cheap, and well within the free tier for a mini-project
-MODEL_NAME = "gemini-2.5-flash"
+# Groq uses an OpenAI-compatible API — same client, just pointed at
+# Groq's servers instead of OpenAI's, with a Groq API key.
+client = OpenAI(
+    base_url="https://api.groq.com/openai/v1",
+    api_key=os.getenv("GROQ_API_KEY")
+)
+
+MODEL_NAME = "openai/gpt-oss-120b"
 
 
 def build_context(retrieved_chunks):
@@ -45,16 +50,16 @@ Question: {question}
 
 Answer:"""
 
-    response = client.models.generate_content(
+    response = client.chat.completions.create(
         model=MODEL_NAME,
-        contents=prompt
+        messages=[{"role": "user", "content": prompt}]
     )
 
-    return response.text
+    return response.choices[0].message.content
 
 
 if __name__ == "__main__":
-    # Quick manual test — reuses the full pipeline so far
+    # Quick manual test — same as before, unchanged
     from github_loader import clone_repository, get_repo_name
     from processor import load_repository_files, chunk_repository_files
     from embeddings import embed_chunks, embed_query
