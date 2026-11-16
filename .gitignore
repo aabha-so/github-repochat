@@ -1,0 +1,35 @@
+# Python & virtual environment
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment secrets (Never commit!)
+.env
+.env.local
+.streamlit/secrets.toml
+
+# Streamlit runtime data
+.streamlit/
+
+# Local ChromaDB persistent index
+index/
+
+# Testing & Cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+*.faiss
+*.pkl
+repos/
+*.log
+*.sqlite3
+
