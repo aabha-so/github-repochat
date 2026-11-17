@@ -2,6 +2,8 @@
 
 Provides a clean chat interface for public GitHub repository Q&A.
 Maintains repo URL, chat history, and index path in st.session_state across reruns.
+
+A login gate (auth.py) guards the app: users must sign up or log in first.
 """
 
 import re
@@ -22,6 +24,7 @@ with open("assets/style.css", encoding="utf-8") as f:
 
 from pathlib import Path
 import config  # Ensures telemetry mutes and global settings load first
+from auth import create_user, verify_user          # ← authentication helpers
 from indexer import index_repository
 from loader import RepoTooLargeError, load_repository
 from retriever import query_repo
@@ -45,9 +48,69 @@ def init_session_state() -> None:
         st.session_state.files = []
     if "collection" not in st.session_state:
         st.session_state.collection = None
+    # Track the logged-in user (None means "not logged in")
+    if "logged_in_user" not in st.session_state:
+        st.session_state.logged_in_user = None
 
 
 init_session_state()
+
+
+# ──────────────────────────────────────────────
+# Login / Sign-up Gate
+# Show this page instead of the main app when
+# no one is logged in.
+# ──────────────────────────────────────────────
+if st.session_state.logged_in_user is None:
+    # Centre a narrow card on the page
+    st.markdown(
+        '''
+        <div style="text-align: center; padding: 60px 0 24px;">
+            <div class="hero-orb hero-orb-idle">
+                <div class="hero-orb-inner"></div>
+            </div>
+            <div class="hero-title">RepoChat</div>
+            <div class="hero-subtitle">Sign in to start exploring repositories.</div>
+        </div>
+        ''',
+        unsafe_allow_html=True,
+    )
+
+    # Two tabs: Login and Sign Up
+    tab_login, tab_signup = st.tabs(["Log In", "Sign Up"])
+
+    with tab_login:
+        st.markdown("<div style='height: 8px'></div>", unsafe_allow_html=True)
+        login_user = st.text_input("Username", key="login_user", placeholder="Your username")
+        login_pass = st.text_input("Password", key="login_pass", type="password", placeholder="Your password")
+
+        if st.button("Log In", type="primary", use_container_width=True, key="btn_login"):
+            ok, msg = verify_user(login_user, login_pass)
+            if ok:
+                # Save the username in session so the gate opens
+                st.session_state.logged_in_user = login_user.strip()
+                st.rerun()
+            else:
+                st.error(msg)
+
+    with tab_signup:
+        st.markdown("<div style='height: 8px'></div>", unsafe_allow_html=True)
+        signup_user = st.text_input("Choose a username", key="signup_user", placeholder="e.g. jane_doe")
+        signup_pass = st.text_input("Choose a password", key="signup_pass", type="password", placeholder="Min. 6 characters")
+        signup_pass2 = st.text_input("Confirm password", key="signup_pass2", type="password", placeholder="Repeat your password")
+
+        if st.button("Create Account", type="primary", use_container_width=True, key="btn_signup"):
+            if signup_pass != signup_pass2:
+                st.error("Passwords do not match.")
+            else:
+                ok, msg = create_user(signup_user, signup_pass)
+                if ok:
+                    st.success(f'Account created! You can now log in as "{signup_user.strip()}".')
+                else:
+                    st.error(msg)
+
+    # Stop here — do not render the main app below
+    st.stop()
 
 # ──────────────────────────────────────────────
 # Sidebar
@@ -162,6 +225,22 @@ with st.sidebar:
         if st.button("Clear conversation", use_container_width=True):
             st.session_state.messages = []
             st.rerun()
+
+    # ── Logged-in user & Logout (always visible at bottom of sidebar) ──
+    st.markdown(
+        '<div style="margin: 24px 0 8px; border-bottom: 1px solid var(--surface-border);"></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div style="font-size: 12px; color: var(--ink-tertiary); text-align: center; margin-bottom: 8px;">'
+        f'Signed in as <strong style="color: var(--ink);">{st.session_state.logged_in_user}</strong>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+    if st.button("Log Out", use_container_width=True, key="btn_logout"):
+        # Clear the entire session so the user returns to the login page
+        st.session_state.clear()
+        st.rerun()
 
 
 # ──────────────────────────────────────────────
