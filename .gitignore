@@ -3,17 +3,19 @@
 venv/
 ENV/
 env/
+test_env/
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Environment secrets (Never commit!)
+# Environment secrets & database (Never commit!)
 .env
 .env.local
 .streamlit/secrets.toml
-
-# Streamlit runtime data
-.streamlit/
+.streamlit/secrets.toml.example
+users.db
+*.sqlite3
+*.db
 
 # Local ChromaDB persistent index
 index/
@@ -22,14 +24,15 @@ index/
 .pytest_cache/
 .coverage
 htmlcov/
+tests/
+test_*.py
 
 # Operating System files
 .DS_Store
 Thumbs.db
+.vscode/
 
 *.faiss
 *.pkl
 repos/
 *.log
-*.sqlite3
-

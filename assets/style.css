@@ -36,18 +36,41 @@
    Animations
    ═══════════════════════════════════════════════════════ */
 @keyframes orb-float {
-    0%, 100% { transform: translateY(0px) scale(1); }
-    50% { transform: translateY(-10px) scale(1.02); }
+
+    0%,
+    100% {
+        transform: translateY(0px) scale(1);
+    }
+
+    50% {
+        transform: translateY(-10px) scale(1.02);
+    }
 }
 
 @keyframes orb-glow-pulse {
-    0%, 100% { opacity: 0.5; transform: scale(1); }
-    50% { opacity: 0.85; transform: scale(1.12); }
+
+    0%,
+    100% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.85;
+        transform: scale(1.12);
+    }
 }
 
 @keyframes fade-in-up {
-    from { opacity: 0; transform: translateY(14px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -81,17 +104,145 @@
     color: var(--ink) !important;
 }
 
+/* Reduce sidebar top padding to ~1rem; restore equal horizontal padding */
+[data-testid="stSidebar"] [data-testid="stSidebarContent"],
+[data-testid="stSidebarContent"],
+[data-testid="stSidebarUserContent"] {
+    padding-top: 1rem !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+}
+
 /* ═══════════════════════════════════════════════════════
    Center Main Content
    ═══════════════════════════════════════════════════════ */
+[data-testid="stMain"] {
+    overflow-y: auto !important;
+    min-height: unset !important;
+    scroll-behavior: smooth !important;
+}
+
 [data-testid="stMainBlockContainer"],
 .block-container,
-[data-testid="stAppViewContainer"] > section:last-child > div {
+[data-testid="stAppViewContainer"]>section:last-child>div {
     max-width: 860px !important;
     margin: 0 auto !important;
     padding-left: 24px !important;
     padding-right: 24px !important;
+    padding-top: 1rem !important;
+    padding-bottom: 6.5rem !important;
+    min-height: calc(100vh - 5.5rem) !important;
     width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Chat spacer: docks short questions/answers cleanly above the bottom input bar */
+.chat-spacer {
+    margin-top: auto !important;
+    flex-grow: 1 !important;
+    min-height: 16px !important;
+    width: 100% !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Fixed Top-Right Action Bar (.st-key-topbar)
+   ═══════════════════════════════════════════════════════ */
+.st-key-topbar {
+    position: fixed !important;
+    top: 12px !important;
+    right: 6.5rem !important;
+    z-index: 999999 !important;
+    width: auto !important;
+    overflow: visible !important;
+}
+
+.st-key-topbar [data-testid="stHorizontalBlock"],
+.st-key-topbar [data-testid="column"],
+.st-key-topbar div[data-testid="stVerticalBlock"] {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+}
+
+.st-key-topbar [data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: auto !important;
+}
+
+.st-key-topbar [data-testid="column"] {
+    width: auto !important;
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+}
+
+.st-key-topbar .stButton>button,
+.st-key-topbar [data-testid="stHorizontalBlock"] .stButton>button {
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 18px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    border-radius: 12px !important;
+    background: #FFFFFF !important;
+    border: 1px solid var(--surface-border) !important;
+    color: var(--ink) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 6px 16px rgba(0, 0, 0, 0.02) !important;
+    transition: all var(--transition-medium) !important;
+}
+
+.st-key-topbar .stButton>button:hover,
+.st-key-topbar [data-testid="stHorizontalBlock"] .stButton>button:hover {
+    border-color: var(--surface-border-hover) !important;
+    background: var(--surface-hover) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+.st-key-topbar .stButton>button *,
+.st-key-topbar [data-testid="stHorizontalBlock"] .stButton>button * {
+    white-space: nowrap !important;
+}
+
+/* Secondary Button (Sidebar New Chat) */
+[data-testid="stSidebar"] div.stButton>button:not([kind="primary"]):not([data-testid="stBaseButton-primary"]) {
+    background: #FFFFFF !important;
+    border: 1px solid var(--surface-border) !important;
+    color: var(--ink) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 6px 16px rgba(0, 0, 0, 0.02) !important;
+    font-weight: 600 !important;
+    height: 42px !important;
+}
+
+[data-testid="stSidebar"] div.stButton>button:not([kind="primary"]):hover {
+    border-color: var(--surface-border-hover) !important;
+    background: var(--surface-hover) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Right-aligned Dialog */
+[data-testid="stDialog"] [role="dialog"] {
+    margin-right: 24px !important;
+    margin-left: auto !important;
+}
+
+@media (max-width: 600px) {
+    [data-testid="stDialog"] [role="dialog"] {
+        margin: auto !important;
+    }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -102,7 +253,7 @@
     border: 1px solid var(--surface-border) !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 6px 16px rgba(0, 0, 0, 0.02) !important;
     border-radius: var(--radius-card) !important;
-    padding: 16px 20px !important;
+    padding: 8px 14px !important;
     color: var(--ink) !important;
     transition: border-color var(--transition-medium), box-shadow var(--transition-medium), transform var(--transition-medium) !important;
 }
@@ -129,7 +280,8 @@
     box-shadow: 0 0 0 3px var(--accent-soft) !important;
 }
 
-.stButton > button {
+.stButton>button,
+[data-testid="stFormSubmitButton"]>button {
     border-radius: var(--radius-input) !important;
     font-weight: 600 !important;
     letter-spacing: -0.01em !important;
@@ -140,31 +292,43 @@
     transition: all var(--transition-medium) !important;
 }
 
-.stButton > button:hover {
+.stButton>button:hover,
+[data-testid="stFormSubmitButton"]>button:hover {
     border-color: var(--surface-border-hover) !important;
     background: var(--surface-hover) !important;
     transform: translateY(-1px) !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
 }
 
-.stButton > button:active {
+.stButton>button:active,
+[data-testid="stFormSubmitButton"]>button:active {
     transform: translateY(0) !important;
 }
 
 /* Primary button */
-.stButton > button[kind="primary"],
-.stButton > button[data-testid="stBaseButton-primary"] {
+.stButton>button[kind="primary"],
+.stButton>button[data-testid="stBaseButton-primary"],
+[data-testid="stFormSubmitButton"]>button[kind="primary"],
+[data-testid="stFormSubmitButton"]>button[data-testid="stBaseButton-primary"] {
     background: var(--accent) !important;
     border-color: var(--accent) !important;
     color: #FFFFFF !important;
     box-shadow: 0 2px 8px var(--accent-glow) !important;
 }
 
-.stButton > button[kind="primary"]:hover,
-.stButton > button[data-testid="stBaseButton-primary"]:hover {
+.stButton>button[kind="primary"]:hover,
+.stButton>button[data-testid="stBaseButton-primary"]:hover,
+[data-testid="stFormSubmitButton"]>button[kind="primary"]:hover,
+[data-testid="stFormSubmitButton"]>button[data-testid="stBaseButton-primary"]:hover {
     background: var(--accent-hover) !important;
     border-color: var(--accent-hover) !important;
     box-shadow: 0 4px 14px var(--accent-glow) !important;
+}
+
+/* Clean Form Wrapper */
+[data-testid="stForm"] {
+    border: none !important;
+    padding: 0 !important;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -177,6 +341,10 @@
     border: 1px solid var(--surface-border) !important;
     animation: fade-in-up 0.35s var(--ease-out-expo) both !important;
     transition: border-color var(--transition-medium) !important;
+}
+
+[data-testid="stChatMessage"]:last-child {
+    margin-bottom: 0 !important;
 }
 
 /* User messages: light ice blue tint with crisp border */
@@ -196,6 +364,17 @@
 
 [data-testid="stChatMessage"]:hover {
     border-color: var(--surface-border-hover) !important;
+}
+
+[data-testid="stChatMessage"] p,
+[data-testid="stChatMessage"] li,
+[data-testid="stChatMessage"] div,
+[data-testid="stChatMessage"] span:not(.source-chip):not(.inline-citation),
+[data-testid="stChatMessage"] h1,
+[data-testid="stChatMessage"] h2,
+[data-testid="stChatMessage"] h3,
+[data-testid="stChatMessage"] h4 {
+    color: var(--ink) !important;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -232,16 +411,44 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   Chat Input
+   Chat Input & Bottom Bar
    ═══════════════════════════════════════════════════════ */
+[data-testid="stBottom"] {
+    padding-bottom: 1.25rem !important;
+    padding-top: 0.75rem !important;
+    background: transparent !important;
+    z-index: 100 !important;
+    pointer-events: none !important;
+}
+
+[data-testid="stBottom"]:not(:has([data-testid="stChatInput"])) {
+    display: none !important;
+}
+
+[data-testid="stBottom"]:has([data-testid="stChatInput"]) {
+    background: linear-gradient(180deg, rgba(249, 250, 251, 0) 0%, var(--page-bg) 40%) !important;
+}
+
+[data-testid="stBottom"] [data-testid="stChatInput"] {
+    pointer-events: auto !important;
+}
+
+[data-testid="stBottom"] > div {
+    background: transparent !important;
+    max-width: 860px !important;
+    margin: 0 auto !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+}
+
 [data-testid="stChatInput"] {
     border-radius: var(--radius-pill) !important;
     background: #FFFFFF !important;
     border: 1px solid var(--surface-border) !important;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
-    position: sticky;
-    bottom: 20px;
+    max-width: 860px !important;
+    margin: 0 auto !important;
 }
 
 [data-testid="stChatInput"]:focus-within {
@@ -259,7 +466,8 @@
 /* ═══════════════════════════════════════════════════════
    Code Typography
    ═══════════════════════════════════════════════════════ */
-code, .stMarkdown code {
+code,
+.stMarkdown code {
     font-family: 'JetBrains Mono', monospace !important;
     font-size: 13px !important;
     background: #F3F4F6 !important;
@@ -270,12 +478,29 @@ code, .stMarkdown code {
 }
 
 /* ═══════════════════════════════════════════════════════
+   Hero Welcome Wrapper (pre-index welcome screen)
+   ═══════════════════════════════════════════════════════ */
+.hero-welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: calc(100vh - 8rem);
+}
+
+/* Gap between orb → title → subtitle → hint via adjacent sibling spacing */
+.hero-welcome .hero-orb         { margin: 0 auto 1rem; }
+.hero-welcome .hero-title       { margin-bottom: 0.75rem; }
+.hero-welcome .hero-subtitle    { margin: 0 auto 1.5rem; max-width: 34rem; }
+
+/* ═══════════════════════════════════════════════════════
    Hero Orb (Cerulean & Opal Radiance)
    ═══════════════════════════════════════════════════════ */
 .hero-orb {
-    width: 120px;
-    height: 120px;
-    margin: 0 auto 32px;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 14px;
     border-radius: 50%;
     position: relative;
     animation: orb-float 6s ease-in-out infinite;
@@ -341,22 +566,22 @@ code, .stMarkdown code {
    Hero Typography
    ═══════════════════════════════════════════════════════ */
 .hero-title {
-    font-size: 52px;
+    font-size: 38px;
     font-weight: 800;
     color: var(--ink);
     letter-spacing: -0.04em;
-    line-height: 1.05;
-    margin-bottom: 16px;
+    line-height: 1.1;
+    margin-bottom: 8px;
     animation: fade-in-up 0.6s var(--ease-out-expo) 0.1s both;
 }
 
 .hero-subtitle {
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 400;
     color: var(--ink-secondary);
-    line-height: 1.6;
+    line-height: 1.5;
     max-width: 440px;
-    margin: 0 auto 36px;
+    margin: 0 auto 18px;
     animation: fade-in-up 0.6s var(--ease-out-expo) 0.2s both;
 }
 
@@ -376,12 +601,12 @@ code, .stMarkdown code {
 /* ═══════════════════════════════════════════════════════
    Suggestion Tiles
    ═══════════════════════════════════════════════════════ */
-[data-testid="stHorizontalBlock"] .stButton > button {
+[data-testid="stHorizontalBlock"] .stButton>button {
     text-align: left !important;
-    padding: 18px 20px !important;
+    padding: 12px 14px !important;
     white-space: pre-wrap !important;
-    line-height: 1.5 !important;
-    min-height: 88px !important;
+    line-height: 1.35 !important;
+    min-height: 72px !important;
     background: #FFFFFF !important;
     border: 1px solid var(--surface-border) !important;
     color: var(--ink) !important;
@@ -389,7 +614,7 @@ code, .stMarkdown code {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
 }
 
-[data-testid="stHorizontalBlock"] .stButton > button:hover {
+[data-testid="stHorizontalBlock"] .stButton>button:hover {
     background: #FAFAFA !important;
     border-color: var(--surface-border-hover) !important;
     transform: translateY(-2px) !important;

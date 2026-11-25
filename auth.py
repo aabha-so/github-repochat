@@ -4,16 +4,18 @@ Stores users in a local SQLite database (users.db).
 Passwords are hashed with bcrypt — never stored in plain text.
 """
 
+from pathlib import Path
 import sqlite3
 import bcrypt
 
 # The database file is created automatically in the project folder.
-DB_PATH = "users.db"
+DB_PATH = Path(__file__).resolve().parent / "users.db"
 
 
 def _get_connection():
     """Open (or create) the SQLite database and return a connection."""
-    conn = sqlite3.connect(DB_PATH)
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(DB_PATH))
     return conn
 
 
@@ -61,6 +63,13 @@ def create_user(username: str, password: str) -> tuple[bool, str]:
     # --- Insert into the database ---
     try:
         conn = _get_connection()
+        existing = conn.execute(
+            "SELECT 1 FROM users WHERE LOWER(username) = LOWER(?)", (username,)
+        ).fetchone()
+        if existing:
+            conn.close()
+            return False, f'Username "{username}" is already taken. Please choose another.'
+
         conn.execute(
             "INSERT INTO users (username, password) VALUES (?, ?)",
             (username, hashed),
@@ -90,7 +99,7 @@ def verify_user(username: str, password: str) -> tuple[bool, str]:
 
     conn = _get_connection()
     row = conn.execute(
-        "SELECT password FROM users WHERE username = ?", (username,)
+        "SELECT password FROM users WHERE LOWER(username) = LOWER(?)", (username,)
     ).fetchone()
     conn.close()
 
