@@ -339,9 +339,6 @@ else:
 # ──────────────────────────────────────────────
 prompt = None
 if st.session_state.index_path:
-    if st.session_state.messages:
-        st.markdown('<div class="chat-spacer"></div>', unsafe_allow_html=True)
-
     for i, msg in enumerate(st.session_state.messages):
         with st.chat_message(msg["role"]):
             content = re.sub(r'【([^】]+)】', r'<span class="inline-citation">\1</span>', msg["content"])
