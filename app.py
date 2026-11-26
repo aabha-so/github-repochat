@@ -266,10 +266,10 @@ def show_settings_dialog() -> None:
 with st.container(key="topbar"):
     bar_about, bar_settings = st.columns(2, gap="small")
     with bar_about:
-        if st.button("How to use", icon=":material/info:", key="btn_about"):
+        if st.button("", icon=":material/info:", key="btn_about"):
             show_about_dialog()
     with bar_settings:
-        if st.button("Settings", icon=":material/settings:", key="btn_settings"):
+        if st.button("", icon=":material/settings:", key="btn_settings"):
             show_settings_dialog()
 
 # Scroll to top after indexing completes or New chat
@@ -310,11 +310,11 @@ if not st.session_state.index_path:
         unsafe_allow_html=True
     )
 else:
-    _welcome = st.container()
     if not st.session_state.messages:
+        _welcome = st.container()
         _welcome.markdown('<div style="height: calc(45vh - 210px); min-height: 20px;"></div>', unsafe_allow_html=True)
         _welcome.markdown(
-            f'<div style="text-align: center; padding: 0 0 16px;">'
+            f'<div style="text-align: center;">'
             f'<div class="hero-orb hero-orb-active"><div class="hero-orb-inner"></div></div>'
             f'<div class="hero-title">Ready to explore</div>'
             f'<div class="hero-subtitle">{st.session_state.owner}/{st.session_state.repo}</div></div>',
@@ -331,8 +331,8 @@ else:
         cols = st.columns(3)
         for i, (title, desc) in enumerate(suggestions):
             if cols[i % 3].button(f"{title}\n\n{desc}", key=f"sug_{i}", use_container_width=True, help=desc):
-                    st.session_state.messages.append({"role": "user", "content": f"{title}: {desc}", "best_effort": True})
-                    st.rerun()
+                st.session_state.messages.append({"role": "user", "content": f"{title}: {desc}", "best_effort": True})
+                st.rerun()
 
 # ──────────────────────────────────────────────
 # Chat History & Input
