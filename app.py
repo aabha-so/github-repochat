@@ -310,9 +310,10 @@ if not st.session_state.index_path:
         unsafe_allow_html=True
     )
 else:
+    _welcome = st.container()
     if not st.session_state.messages:
-        st.markdown('<div style="height: calc(45vh - 210px); min-height: 20px;"></div>', unsafe_allow_html=True)
-        st.markdown(
+        _welcome.markdown('<div style="height: calc(45vh - 210px); min-height: 20px;"></div>', unsafe_allow_html=True)
+        _welcome.markdown(
             f'<div style="text-align: center; padding: 0 0 16px;">'
             f'<div class="hero-orb hero-orb-active"><div class="hero-orb-inner"></div></div>'
             f'<div class="hero-title">Ready to explore</div>'
@@ -329,8 +330,7 @@ else:
         ]
         cols = st.columns(3)
         for i, (title, desc) in enumerate(suggestions):
-            with cols[i % 3]:
-                if st.button(f"{title}\n\n{desc}", key=f"sug_{i}", use_container_width=True, help=desc):
+            if cols[i % 3].button(f"{title}\n\n{desc}", key=f"sug_{i}", use_container_width=True, help=desc):
                     st.session_state.messages.append({"role": "user", "content": f"{title}: {desc}", "best_effort": True})
                     st.rerun()
 

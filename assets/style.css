@@ -123,8 +123,11 @@
     padding-left: 24px !important;
     padding-right: 24px !important;
     padding-top: 1rem !important;
-    padding-bottom: 7rem !important;
+    padding-bottom: 3rem !important;
     width: 100% !important;
+}
+[data-stale="true"] {
+    opacity: 1 !important;
 }
 
 /* ═══════════════════════════════════════════════════════
