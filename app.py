@@ -368,7 +368,7 @@ if current_prompt:
     if not st.session_state.collection or not st.session_state.files:
         st.warning("Please index a GitHub repository first.")
     elif not config.GROQ_API_KEY:
-        st.error("GROQ_API_KEY is not configured. Please add it to your .env or Streamlit Cloud Secrets.")
+        st.error("Missing required secret: 'GROQ_API_KEY'. Please configure GROQ_API_KEY in your environment variables or secrets.")
     else:
         components.html(_SCROLL_BOTTOM_JS, height=0, width=0)
         is_best_effort = bool(st.session_state.messages and st.session_state.messages[-1].get("best_effort"))
