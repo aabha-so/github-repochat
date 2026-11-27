@@ -8,7 +8,6 @@ A login gate (auth.py) guards the app: users must sign up or log in first.
 from pathlib import Path
 import re
 import shutil
-import time
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -24,7 +23,7 @@ import config  # Ensures telemetry mutes and global settings load first
 from auth import create_user, verify_user
 from indexer import index_repository
 from loader import RepoTooLargeError, load_repository
-from retriever import query_repo
+from graph import build_repo_graph
 
 
 def init_session_state() -> None:
@@ -41,6 +40,61 @@ def init_session_state() -> None:
 
 
 init_session_state()
+
+# ──────────────────────────────────────────────
+# Agent workflow (LangGraph)
+# ──────────────────────────────────────────────
+def run_agent(query: str, chat_history: list[dict[str, str]], index_path: str) -> dict:
+    """Run graph.py and return the UI shape: answer, sources, best_effort, steps."""
+    graph, _ = build_repo_graph()
+    inputs = {
+        "query": query,
+        "original_query": query,
+        "index_path": str(index_path),
+        "chat_history": chat_history,
+        "chunks": [],
+        "is_direct": False,
+        "rewrite_count": 0,
+        "answer": "",
+    }
+    state = dict(inputs)
+    steps: list[tuple[str, dict]] = []
+    config = {"configurable": {"thread_id": "repochat-session"}}
+    for update in graph.stream(inputs, config=config, stream_mode="updates"):
+        for node, values in update.items():
+            state.update(values or {})
+            steps.append((node, values or {}))
+    return {
+        "answer": state.get("answer", ""),
+        "sources": state.get("chunks", []),
+        "best_effort": False,
+        "steps": steps,
+    }
+
+
+def describe_steps(steps: list[tuple[str, dict]]) -> list[str]:
+    """Turn per-node graph updates into short human-readable lines."""
+    lines = []
+    for node, values in steps:
+        if node == "route":
+            lines.append(
+                "**route** — greeting, answered directly"
+                if values.get("is_direct")
+                else "**route** — question is about the repo, retrieving code"
+            )
+        elif node == "retrieve":
+            lines.append(f"**retrieve** — fetched {len(values.get('chunks') or [])} candidate sections")
+        elif node == "grade":
+            lines.append(
+                "**grade** — best score too low, rewriting the query"
+                if values.get("needs_rewrite")
+                else "**grade** — retrieval scores look good"
+            )
+        elif node == "rewrite":
+            lines.append(f"**rewrite** — query simplified to “{values.get('query', '')}”")
+        elif node == "generate":
+            lines.append("**generate** — wrote the answer from the retrieved code")
+    return lines or ["No agent steps recorded."]
 
 # ──────────────────────────────────────────────
 # Login / Sign-up Gate (retro horror menu flow)
@@ -307,29 +361,20 @@ if current_prompt:
         st.error("Missing required secret: 'GROQ_API_KEY'. Please configure GROQ_API_KEY in your environment variables or secrets.")
     else:
         components.html(_SCROLL_BOTTOM_JS, height=0, width=0)
-        is_best_effort = bool(st.session_state.messages and st.session_state.messages[-1].get("best_effort"))
         with st.chat_message("assistant"):
             with st.status("Searching codebase...", expanded=False) as status:
-                status.update(label="Retrieving relevant code...", state="running")
+                status.update(label="Running the agent workflow...", state="running")
                 chat_history = [m for m in st.session_state.messages[:-1]]
-                answer, chunks = query_repo(
-                    query=current_prompt,
-                    collection=st.session_state.collection,
-                    chat_history=chat_history,
-                    best_effort=is_best_effort,
-                )
-                citations = list(dict.fromkeys(c.file_path for c in chunks))
-                status.update(label=f"Found {len(chunks)} relevant sections", state="complete")
+                result = run_agent(current_prompt, chat_history, st.session_state.index_path)
+                citations = list(dict.fromkeys(c["file_path"] for c in result["sources"]))
+                status.update(label=f"Found {len(result['sources'])} relevant sections", state="complete")
 
-            placeholder = st.empty()
-            streamed = ""
-            words = answer.split(" ")
-            for j, word in enumerate(words):
-                streamed += word + " "
-                if j % 3 == 0 or j == len(words) - 1:
-                    placeholder.markdown(streamed, unsafe_allow_html=True)
-                    time.sleep(0.02)
-            placeholder.markdown(streamed, unsafe_allow_html=True)
+            # graph.py returns the whole answer from a single LLM call — no token stream.
+            st.markdown(result["answer"], unsafe_allow_html=True)
+
+            with st.expander("How this answer was found"):
+                for line in describe_steps(result["steps"]):
+                    st.markdown(line)
 
             if citations and st.session_state.get("show_sources", True):
                 chips_html = "".join([f'<span class="source-chip">{path}</span>' for path in citations])
@@ -338,5 +383,5 @@ if current_prompt:
                     unsafe_allow_html=True
                 )
 
-        st.session_state.messages.append({"role": "assistant", "content": answer, "citations": citations})
+        st.session_state.messages.append({"role": "assistant", "content": result["answer"], "citations": citations})
         st.rerun()
