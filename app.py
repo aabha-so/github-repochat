@@ -32,7 +32,7 @@ def init_session_state() -> None:
     defaults = {
         "messages": [], "repo_url": "", "index_path": None, "owner": "", "repo": "",
         "commit_sha": "", "files": [], "collection": None, "logged_in_user": None,
-        "auth_view": "login", "view": "chat", "answer_style": "Concise", "top_k": 5,
+        "auth_screen": "welcome", "view": "chat", "answer_style": "Concise", "top_k": 5,
         "show_sources": True,
     }
     for key, val in defaults.items():
@@ -43,76 +43,12 @@ def init_session_state() -> None:
 init_session_state()
 
 # ──────────────────────────────────────────────
-# Login / Sign-up Gate
+# Login / Sign-up Gate (retro horror menu flow)
 # ──────────────────────────────────────────────
 if st.session_state.logged_in_user is None:
-    st.markdown(
-        '<div style="text-align: center; padding: 12px 0 16px;">'
-        '<div class="hero-orb hero-orb-idle"><div class="hero-orb-inner"></div></div>'
-        '<div class="hero-title">RepoChat</div>'
-        '<div class="hero-subtitle">Sign in to start exploring repositories.</div></div>',
-        unsafe_allow_html=True,
-    )
+    from auth_ui import render_auth
 
-    # ── View toggle ──
-    col_l, col_r = st.columns(2)
-    with col_l:
-        if st.button("Log In", use_container_width=True,
-                     type="primary" if st.session_state.auth_view == "login" else "secondary",
-                     key="btn_switch_login"):
-            st.session_state.auth_view = "login"
-            st.rerun()
-    with col_r:
-        if st.button("Sign Up", use_container_width=True,
-                     type="primary" if st.session_state.auth_view == "signup" else "secondary",
-                     key="btn_switch_signup"):
-            st.session_state.auth_view = "signup"
-            st.rerun()
-
-    st.markdown("<div style='height: 8px'></div>", unsafe_allow_html=True)
-
-    if st.session_state.auth_view == "login":
-        if st.session_state.get("signup_success_msg"):
-            st.success(st.session_state.pop("signup_success_msg"))
-        with st.form("login_form", border=False):
-            prefill = st.session_state.pop("login_prefill", "")
-            login_user = st.text_input("Username", value=prefill, placeholder="Your username")
-            login_pass = st.text_input("Password", type="password", placeholder="Your password")
-            submit_login = st.form_submit_button("Log In", type="primary", use_container_width=True)
-            if submit_login:
-                ok, msg = verify_user(login_user, login_pass)
-                if ok:
-                    st.session_state.logged_in_user = login_user.strip()
-                    st.rerun()
-                else:
-                    st.error(msg)
-
-    else:  # signup view
-        with st.form("signup_form", border=False):
-            signup_user = st.text_input("Choose a username", placeholder="e.g. jane_doe")
-            signup_pass = st.text_input("Choose a password", type="password", placeholder="Min. 6 characters")
-            signup_pass2 = st.text_input("Confirm password", type="password", placeholder="Repeat your password")
-            submit_signup = st.form_submit_button("Create Account", type="primary", use_container_width=True)
-            if submit_signup:
-                if not signup_user.strip():
-                    st.error("Username cannot be empty.")
-                elif not signup_pass:
-                    st.error("Password cannot be empty.")
-                elif len(signup_pass) < 6:
-                    st.error("Password must be at least 6 characters.")
-                elif signup_pass != signup_pass2:
-                    st.error("Passwords do not match.")
-                else:
-                    ok, msg = create_user(signup_user, signup_pass)
-                    if ok:
-                        st.session_state.signup_success_msg = f'Account created! You can now log in as "{signup_user.strip()}".'
-                        st.session_state.login_prefill = signup_user.strip()
-                        st.session_state.auth_view = "login"
-                        st.rerun()
-                    else:
-                        st.error(msg)
-
-    st.markdown("<div style='height: 80px;'></div>", unsafe_allow_html=True)
+    render_auth()
     st.stop()
 
 # ──────────────────────────────────────────────
