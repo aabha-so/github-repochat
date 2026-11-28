@@ -6,6 +6,7 @@ A login gate (auth.py) guards the app: users must sign up or log in first.
 """
 
 from pathlib import Path
+import json
 import re
 import shutil
 
@@ -20,8 +21,8 @@ with open("assets/style.css", encoding="utf-8") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 import config  # Ensures telemetry mutes and global settings load first
-from auth import create_user, verify_user
-from indexer import index_repository
+from auth import create_user, verify_user, delete_conversation, load_chat_history, save_chat_turn
+from indexer import get_index_path, index_repository
 from loader import RepoTooLargeError, load_repository
 from graph import build_repo_graph
 
@@ -167,11 +168,56 @@ with st.sidebar:
                     f'<div style="font-family: \'JetBrains Mono\', monospace; font-size: 13px; color: var(--ink);">{value}</div></div>')
 
         st.markdown(render_status_card("Repository", f"{st.session_state.owner}/{st.session_state.repo}"), unsafe_allow_html=True)
-        st.markdown(render_status_card("Files", str(len(st.session_state.files))), unsafe_allow_html=True)
+        st.markdown(render_status_card("Files", str(len(st.session_state.files)) if st.session_state.files else "cached"), unsafe_allow_html=True)
         if st.button("New chat", icon=":material/add:", use_container_width=True, key="btn_sidebar_new_chat"):
             st.session_state.messages = []
             st.session_state.scroll_to_top = True
             st.rerun()
+
+    # ── Saved conversations for the logged-in user ──
+    history = load_chat_history(st.session_state.logged_in_user)
+    if history:
+        st.markdown('<div style="margin: 14px 0 8px; border-bottom: 1px solid var(--surface-border);"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 11px; font-weight: 700; color: var(--ink-tertiary); letter-spacing: 0.1em; margin-bottom: 8px; text-transform: uppercase;">History</div>', unsafe_allow_html=True)
+
+        groups: dict[str, dict] = {}
+        for row in history:  # newest first from auth.load_chat_history
+            group = groups.setdefault(row["repo_key"], {"repo_url": row["repo_url"], "rows": []})
+            group["rows"].append(row)
+
+        for i, (repo_key, group) in enumerate(groups.items()):
+            repo_label = repo_key.split("@", 1)[0]
+            count = len(group["rows"])
+            if st.button(f"{repo_label} · {count}", key=f"hist_open_{i}", use_container_width=True,
+                         help="Reload this conversation"):
+                rows = list(reversed(group["rows"]))  # oldest first
+                st.session_state.messages = [
+                    message
+                    for row in rows
+                    for message in (
+                        {"role": "user", "content": row["question"]},
+                        {"role": "assistant", "content": row["answer"],
+                         "citations": json.loads(row["sources"] or "[]")},
+                    )
+                ]
+                st.session_state.repo_url = group["repo_url"]
+                base, _, sha = repo_key.partition("@")
+                owner, _, repo = base.partition("/")
+                st.session_state.owner, st.session_state.repo = owner, repo
+                st.session_state.commit_sha = sha
+                # Re-open the cached Chroma collection so follow-ups work without re-embedding.
+                collection, cached_path = None, get_index_path(owner, repo, sha)
+                try:
+                    cached, cached_path, _ = index_repository([], owner, repo, sha)
+                    collection = cached if cached.count() > 0 else None
+                except Exception:
+                    collection = None
+                st.session_state.collection, st.session_state.index_path = collection, cached_path
+                st.session_state.files = []
+                st.rerun()
+            if st.button("Delete this conversation", key=f"hist_del_{i}"):
+                delete_conversation(st.session_state.logged_in_user, repo_key)
+                st.rerun()
 
 # ──────────────────────────────────────────────
 # Dialogs: About & Settings
@@ -355,7 +401,7 @@ if len(st.session_state.messages) > 0 and st.session_state.messages[-1]["role"] 
     current_prompt = st.session_state.messages[-1]["content"]
 
 if current_prompt:
-    if not st.session_state.collection or not st.session_state.files:
+    if not st.session_state.collection:
         st.warning("Please index a GitHub repository first.")
     elif not config.GROQ_API_KEY:
         st.error("Missing required secret: 'GROQ_API_KEY'. Please configure GROQ_API_KEY in your environment variables or secrets.")
@@ -384,4 +430,12 @@ if current_prompt:
                 )
 
         st.session_state.messages.append({"role": "assistant", "content": result["answer"], "citations": citations})
+        save_chat_turn(
+            st.session_state.logged_in_user,
+            f"{st.session_state.owner}/{st.session_state.repo}@{st.session_state.commit_sha}",
+            st.session_state.repo_url,
+            current_prompt,
+            result["answer"],
+            citations,
+        )
         st.rerun()

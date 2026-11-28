@@ -5,6 +5,7 @@ Passwords are hashed with bcrypt — never stored in plain text.
 """
 
 from pathlib import Path
+import json
 import sqlite3
 import bcrypt
 
@@ -20,7 +21,7 @@ def _get_connection():
 
 
 def _create_table():
-    """Create the users table if it doesn't already exist."""
+    """Create the users and chat_history tables if they don't already exist."""
     conn = _get_connection()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -28,6 +29,22 @@ def _create_table():
             username TEXT    NOT NULL UNIQUE,
             password TEXT    NOT NULL
         )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS chat_history (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            username   TEXT NOT NULL,
+            repo_key   TEXT NOT NULL,
+            repo_url   TEXT NOT NULL,
+            question   TEXT NOT NULL,
+            answer     TEXT NOT NULL,
+            sources    TEXT NOT NULL DEFAULT '[]',
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_chat_history_user
+        ON chat_history (username, id)
     """)
     conn.commit()
     conn.close()
@@ -112,3 +129,49 @@ def verify_user(username: str, password: str) -> tuple[bool, str]:
         return True, ""
     else:
         return False, "Incorrect password. Please try again."
+
+
+# ──────────────────────────────────────────────
+# Per-user chat history
+# ──────────────────────────────────────────────
+def save_chat_turn(
+    username: str,
+    repo_key: str,
+    repo_url: str,
+    question: str,
+    answer: str,
+    sources: list[str],
+) -> None:
+    """Persist one answered question for a user. Parameterised query only."""
+    conn = _get_connection()
+    conn.execute(
+        "INSERT INTO chat_history (username, repo_key, repo_url, question, answer, sources) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (username, repo_key, repo_url, question, answer, json.dumps(sources)),
+    )
+    conn.commit()
+    conn.close()
+
+
+def load_chat_history(username: str) -> list[dict]:
+    """Return this user's saved turns, newest first. Never reads other users."""
+    conn = _get_connection()
+    rows = conn.execute(
+        "SELECT id, repo_key, repo_url, question, answer, sources, created_at "
+        "FROM chat_history WHERE username = ? ORDER BY id DESC",
+        (username,),
+    ).fetchall()
+    conn.close()
+    keys = ("id", "repo_key", "repo_url", "question", "answer", "sources", "created_at")
+    return [dict(zip(keys, row)) for row in rows]
+
+
+def delete_conversation(username: str, repo_key: str) -> None:
+    """Delete this user's saved turns for one repository conversation."""
+    conn = _get_connection()
+    conn.execute(
+        "DELETE FROM chat_history WHERE username = ? AND repo_key = ?",
+        (username, repo_key),
+    )
+    conn.commit()
+    conn.close()
